@@ -1,146 +1,46 @@
-### **Infraestructura como código**
+## informe para subir una funcion con terraform a azure
+## estudiante: Samuel Alvarez Alban A00394750
 
-- **Utilizar archivos de definición**: Todas las herramientas de infraestructura como código tienen un formato propio para definir la infraestructura.
-- **Autodocumentación de procesos y sistemas**: Al utilizar el enfoque de infraestructura como código, podemos reutilizar el código. Es importante que este esté documentado adecuadamente para que otros usuarios comprendan el propósito y funcionamiento del módulo.
-- **Versionar todo**: Esto nos permite rastrear los cambios realizados. Si se comete un error, podemos retroceder a una versión estable.
-- **Preferir cambios pequeños**: Realizar cambios pequeños para evitar grandes impactos.
-- **Mantener los servicios continuamente disponibles**: Garantizar la disponibilidad continua es clave en la infraestructura.
+1) logearse en azure CLI con el comando az login
 
-### **Beneficios de la infraestructura como código**
+![alt text](image.png)
 
-- **Creación rápida y bajo demanda**: Con un único archivo de definición de infraestructura que almacena todas nuestras configuraciones, podemos crear múltiples veces la infraestructura sin necesidad de rehacer todo desde el principio.
-- **Automatización**: Una vez creado el archivo de definición, podemos usar herramientas de **continuous integration** para automatizar la infraestructura.
-- **Visibilidad y trazabilidad**: El versionamiento de la infraestructura como código permite una mayor visibilidad y trazabilidad, ya que todos los cambios quedan registrados.
-- **Ambientes homogéneos**: Podemos crear varios ambientes a partir del mismo archivo de definición, cambiando únicamente algunos parámetros.
+2) ver el id de la subcripcion del usuario de azure y remplazarlo en el main
 
----
+![alt text](image-1.png)
 
-### **Mejores prácticas**
+![alt text](image-2.png)
 
-- **Modularidad**: Es recomendable dividir la infraestructura en módulos reutilizables para facilitar su mantenimiento y escalabilidad.
-- **Mantener las configuraciones centralizadas**: Utilizar variables y archivos de configuración para gestionar parámetros y evitar valores "hardcoded".
-- **Manejo seguro del estado**: Almacenar el archivo `terraform.tfstate` de manera remota (por ejemplo, en un bucket S3 con bloqueo de versión) para evitar problemas en equipos distribuidos.
-- **Revisiones de código y pull requests**: Antes de aplicar cambios importantes en la infraestructura, hacer revisiones mediante pull requests para asegurar que los cambios han sido revisados por otros.
+3) listo ahora ya procedemos a subir nuestra primera funcion
 
-### **Ambientes**
+terraform init: Inicializa el proyecto Terraform y descarga los proveedores necesarios.
 
-Terraform permite la creación de múltiples ambientes (dev, stage, prod) con diferentes configuraciones. Puedes gestionar estos ambientes utilizando archivos `.tfvars` específicos para cada entorno.
+![alt text](image-3.png)
 
-- **Ambiente de desarrollo (dev)**: Se recomienda utilizar recursos más pequeños y económicos en este ambiente para reducir costos.
-- **Ambiente de producción (prod)**: Aquí es importante configurar instancias y recursos con redundancia y alta disponibilidad.
-  
-Ejemplo de estructura para gestionar ambientes:
+terraform validate: Verifica que la configuración de Terraform sea válida.
 
-```bash
-├── main.tf
-├── variables.tf
-├── dev.tfvars
-├── prod.tfvars
-```
+terraform fmt: Formatea el código Terraform siguiendo las convenciones estándar
 
-Al aplicar los cambios para un ambiente en específico, puedes ejecutar:
+![alt text](image-4.png)
 
-```bash
-terraform apply --var-file="dev.tfvars"
-```
+terraform plan: Muestra los cambios que Terraform realizará en la infraestructura.
 
-### **Automatización con CI/CD**
+![alt text](image-5.png)
 
-Integrar Terraform en un flujo de CI/CD es una excelente práctica para automatizar la gestión de la infraestructura. Puedes utilizar herramientas como Jenkins, GitLab CI, o GitHub Actions para automatizar el proceso de despliegue y validación.
+![alt text](image-6.png)
 
-Ejemplo de un pipeline básico en GitLab CI:
+terraform apply: Aplica los cambios y crea/modifica la infraestructura según la configuración.
 
-```yaml
-stages:
-  - validate
-  - plan
-  - apply
+![alt text](image-7.png)
 
-validate:
-  script:
-    - terraform init
-    - terraform validate
+![alt text](image-8.png)
 
-plan:
-  script:
-    - terraform plan
+este es el link que arroja despues de hacer apply
 
-apply:
-  script:
-    - terraform apply --auto-approve
-```
+![alt text](image-9.png)
 
-Este pipeline primero inicializa el entorno, luego valida la configuración, y finalmente aplica los cambios automáticamente.
+y aqui se encuentra la function en el grupo de recursos
 
-### **Seguridad**
+![alt text](image-10.png)
 
-- **Manejo seguro de credenciales**: Nunca almacenar credenciales en el código fuente. Utilizar herramientas como **AWS Secrets Manager** o **HashiCorp Vault** para gestionar los secretos de manera segura.
-- **Control de acceso basado en roles (IAM)**: Asignar roles y permisos específicos a los recursos de Terraform mediante políticas de IAM para restringir el acceso según sea necesario.
-- **Cifrado de datos**: Utilizar cifrado en reposo y en tránsito para proteger los datos sensibles, como el uso de **KMS (Key Management Service)** de AWS.
-- **Seguridad en el estado**: Si almacenas el archivo `terraform.tfstate` en un bucket S3, asegúrate de habilitar el cifrado y el control de versiones para evitar modificaciones no autorizadas.
-
----
-
-### **Manejo de variables en Terraform**
-
-Para hacer escalable y reutilizable el archivo de definición de infraestructura, se recomienda no usar valores "hardcoded". Terraform permite crear variables de los siguientes tipos:
-
-- **string**
-- **number**
-- **boolean**
-- **map**
-- **list**
-
-Si no se declara un tipo, el valor por defecto será `string`. Sin embargo, es una buena práctica especificar el tipo de la variable.
-
-Ejemplo de definición de variables:
-
-```terraform
-variable "ami_id" {
-  type        = string
-  description = "ID de la AMI"
-}
-
-variable "instance_type" {
-  type        = string
-  description = "Tipo de instancia"
-}
-
-variable "tags" {
-  type        = map
-  description = "Etiquetas para la instancia"
-}
-```
-
-### **Asignar valores a las variables**
-
-Los valores de las variables se pueden asignar de tres maneras:
-
-1. Utilizando variables de entorno.
-2. Pasándolos como argumentos en la línea de comandos.
-3. Mediante un archivo `.tfvars` con formato `key = value`.
-
-Ejemplo de archivo `.tfvars`:
-
-```terraform
-ami_id        = "ami-0ca0c67309196175e"
-instance_type = "t2.micro"
-tags = {
-  Name       = "devops-tf"
-  Environment = "Dev"
-}
-```
-
-Para usar este archivo con variables:
-
-```bash
-terraform apply --var-file="dev.tfvars"
-```
-
-### **Destruir la infraestructura**
-
-Para eliminar la infraestructura creada, se puede utilizar:
-
-```bash
-terraform destroy --var-file="dev.tfvars" -auto-approve
-```
+la funcion es alvarezfirstfunction.

@@ -1,50 +1,60 @@
-## informe para subir una funcion con terraform a azure
-## estudiante: Samuel Alvarez Alban A00394750
+# Crear una Máquina Virtual en Azure con Terraform
 
-1) logearse en azure CLI con el comando az login
+Este proyecto muestra cómo desplegar una máquina virtual Linux en Azure usando Terraform.
 
-![alt text](image.png)
+## Pasos realizados
 
-2) ver el id de la subcripcion del usuario de azure y remplazarlo en el main
+1. **Configuración de archivos Terraform**
+   - Se definieron los recursos en `main.tf`:
+     - Grupo de recursos
+     - Red virtual y subred
+     - IP pública
+     - Interfaz de red
+     - Seguridad de red
+     - Máquina virtual Linux
 
-![alt text](image-1.png)
+2. **Variables y salidas**
+   - Se usó `variables.tf` para definir variables como el nombre de la VM.
+   - Se configuró `outputs.tf` para mostrar la IP pública de la VM.
 
-![alt text](image-2.png)
+3. **Inicialización y despliegue**
+   - Ejecuta:
+     ```powershell
+     terraform init
+     terraform plan
+     terraform apply
+     ```
+   - Ingresa el nombre de la función/VM cuando se solicite.
 
-3) listo ahora ya procedemos a subir nuestra primera funcion
+4. **Conexión a la VM**
+   - Obtén la IP pública desde la salida de Terraform o con:
+     ```powershell
+     terraform output vm_public_ip
+     ```
+   - Conéctate por SSH:
+     ```powershell
+     ssh freddyedd21@<IP_PUBLICA>
+     ```
+     Usa la contraseña definida en `main.tf`.
 
-terraform init: Inicializa el proyecto Terraform y descarga los proveedores necesarios.
+## Dónde mostrar capturas
 
-![alt text](image-3.png)
+- **Captura 1:** Salida exitosa de `terraform apply` mostrando la creación de recursos.
+- **Captura 2:** Conexión exitosa por SSH a la VM desde PowerShell o terminal.
+- **Captura 3 (opcional):** Portal de Azure mostrando la VM creada.
 
-terraform validate: Verifica que la configuración de Terraform sea válida.
+Coloca las imágenes en la carpeta del proyecto y referencia aquí si lo deseas:
 
-terraform fmt: Formatea el código Terraform siguiendo las convenciones estándar
+```
+![Terraform Apply](image-1.png)
+![SSH Connection](image-2.png)
+![Azure Portal VM](image-3.png)
+```
 
-![alt text](image-4.png)
+## Recomendaciones
+- Cambia la contraseña por una segura antes de producción.
+- Usa autenticación SSH para mayor seguridad.
 
-terraform plan: Muestra los cambios que Terraform realizará en la infraestructura.
+---
 
-![alt text](image-5.png)
-
-![alt text](image-6.png)
-
-terraform apply: Aplica los cambios y crea/modifica la infraestructura según la configuración.
-
-![alt text](image-7.png)
-
-![alt text](image-8.png)
-
-este es el link que arroja despues de hacer apply
-
-![alt text](image-9.png)
-
-y aqui se encuentra la function en el grupo de recursos
-
-![alt text](image-10.png)
-
-la funcion es alvarezfirstfunction.
-
-aqui una prueba
-
-![alt text](image-11.png)
+Cualquier duda, revisa los archivos `.tf` o consulta la documentación oficial de Terraform y Azure.

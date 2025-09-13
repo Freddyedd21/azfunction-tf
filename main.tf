@@ -1,86 +1,114 @@
 # Definición del provider que ocuparemos
+
+
 provider "azurerm" {
   features {}
   subscription_id = "d1e6f969-0e7e-456b-9324-8a0343e95482"
 
 }
 
+#Grupo de recursos
 # Se crea el grupo de recursos, al cual se asociarán los demás recursos
 resource "azurerm_resource_group" "rg" {
   name     = var.name_function
   location = var.location
 }
 
-# Se crea un Storage Account, para asociarlo al function app (recomendación de la documentación).
-resource "azurerm_storage_account" "sa" {
-  name                     = var.name_function
-  resource_group_name      = azurerm_resource_group.rg.name
-  location                 = azurerm_resource_group.rg.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
+# Red virtual
+
+resource "azurerm_virtual_network" "vnet" {
+  name = "${var.name_function}-vnet" # Nombre de la red virtual
+  address_space = ["10.0.0.0/16"] # Espacio de direcciones IP
+  location = azurerm_resource_group.rg.location # Ubicación
+  resource_group_name = azurerm_resource_group.rg.name # Grupo de recursos
+
 }
 
-# Se crea el recurso Service Plan para especificar el nivel de servicio 
-# (por ejemplo, "Consumo", "Functions Premium" o "Plan de App Service"), en este caso "Y1" hace referencia a plan consumo 
-resource "azurerm_service_plan" "sp" {
-  name                = var.name_function
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  os_type             = "Windows"
-  sku_name            = "Y1"
+# Subred
+resource "azurerm_subnet" "subnet" {
+  name                 = "${var.name_function}-subnet" # Nombre de la subred
+  resource_group_name  = azurerm_resource_group.rg.name # Grupo de recursos
+  virtual_network_name = azurerm_virtual_network.vnet.name # Red virtual
+  address_prefixes     = ["10.0.1.0/24"] # Espacio de direcciones IP de la subred
 }
 
-# Se crea la aplicación de Funciones 
-resource "azurerm_windows_function_app" "wfa" {
-  name                = var.name_function
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+# Ip pública
+resource "azurerm_public_ip" "public_ip" {
+  name                = "${var.name_function}-public-ip" # Nombre de la IP pública
+  location            = azurerm_resource_group.rg.location # Ubicación
+  resource_group_name = azurerm_resource_group.rg.name # Grupo de recursos
+  allocation_method   = "Static" # Método de asignación (Estática requerida para Standard SKU)
 
-  storage_account_name       = azurerm_storage_account.sa.name
-  storage_account_access_key = azurerm_storage_account.sa.primary_access_key
-  service_plan_id            = azurerm_service_plan.sp.id
+}
 
-  site_config {
-    application_stack {
-      node_version = "~18"
+# interfaz de red
+resource "azurerm_network_interface" "nic" {
+  name                = "${var.name_function}-nic" # Nombre de la interfaz de red
+  location            = azurerm_resource_group.rg.location # Ubicación
+  resource_group_name = azurerm_resource_group.rg.name # Grupo de recursos
+
+  ip_configuration {
+    name                          = "internal" # Nombre de la configuración IP
+    subnet_id                     = azurerm_subnet.subnet.id # ID de la subred
+    private_ip_address_allocation = "Dynamic" # Asignación de IP privada (Estática o Dinámica)
+    public_ip_address_id          = azurerm_public_ip.public_ip.id # ID de la IP pública
+  }
+}
+
+# Seguridad de red
+resource "azurerm_network_security_group" "nsg" {
+  name = "${var.name_function}-nsg" # Nombre del grupo de seguridad de red
+  location = azurerm_resource_group.rg.location # Ubicación
+  resource_group_name = azurerm_resource_group.rg.name # Grupo de recursos
+
+  security_rule{
+    name = "SSH" # Nombre de la regla
+    priority = 100 # Prioridad de la regla
+    direction = "Inbound" # Dirección del tráfico (Inbound o Outbound)
+    access = "Allow" # Permitir o Denegar
+    protocol = "Tcp" # Protocolo (Tcp, Udp, o *)
+    source_port_range = "*" # Rango de puertos de origen
+    destination_port_range = "22" # Rango de puertos de destino
+    source_address_prefix = "*" # Prefijo de dirección de origen
+    destination_address_prefix = "*" # Prefijo de dirección de destino
+  }
+}
+
+#asociar nsg a la nic
+resource "azurerm_network_interface_security_group_association" "nsg_association" {
+  network_interface_id      = azurerm_network_interface.nic.id # ID de la interfaz de red
+  network_security_group_id = azurerm_network_security_group.nsg.id # ID del grupo de seguridad de red
+}
+
+#Maquina virtual de linux
+resource "azurerm_linux_virtual_machine" "vm" {
+  name = "${var.name_function}-vm" # Nombre de la máquina virtual
+  resource_group_name = azurerm_resource_group.rg.name # Grupo de recursos
+  location = azurerm_resource_group.rg.location # Ubicación
+  disable_password_authentication = false # Permitir autenticación por contraseña
+  size = "Standard_B1s" # Tamaño de la máquina virtual
+  admin_username = "freddyedd21" # Nombre de usuario administrador
+  network_interface_ids =  [
+    azurerm_network_interface.nic.id, # ID de la interfaz de red
+  ]
+
+  admin_password = "Freddyedd12345+" # Contraseña de administrador (solo para pruebas, usa SSH en producción)
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+    name                 = "${var.name_function}-osdisk"
+  }
+
+    source_image_reference {
+      publisher = "Canonical"
+      offer     = "UbuntuServer"
+      sku       = "18.04-LTS"
+      version   = "latest"
     }
-  }
 }
 
-# Se crea una función dentro de la aplicación de funciones
-resource "azurerm_function_app_function" "faf" {
-  name            = var.name_function
-  function_app_id = azurerm_windows_function_app.wfa.id
-  language        = "Javascript"
-  # Se carga el código de ejemplo dentro de la función
-  file {
-    name    = "index.js"
-    content = file("example/index.js")
-  }
-  # Se define el payload para los test
-  test_data = jsonencode({
-    "name" = "Azure"
-  })
-  # Se mapean las solicitudes
-  config_json = jsonencode({
-    "bindings" : [
-      {
-        "authLevel" : "anonymous",
-        "type" : "httpTrigger",
-        "direction" : "in",
-        "name" : "req",
-        "methods" : [
-          "get",
-          "post"
-        ]
-      },
-      {
-        "type" : "http",
-        "direction" : "out",
-        "name" : "res"
-      }
-    ]
-  })
-}
+
+
 
 

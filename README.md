@@ -32,7 +32,7 @@ Este proyecto muestra cómo desplegar una máquina virtual Linux en Azure usando
      terraform output vm_public_ip
      ```
    - Conéctate por SSH:
-     ```powershell
+     ```bash
      ssh freddyedd21@<IP_PUBLICA>
      ```
      Usa la contraseña definida en `main.tf`.
@@ -40,21 +40,18 @@ Este proyecto muestra cómo desplegar una máquina virtual Linux en Azure usando
 ## Dónde mostrar capturas
 
 - **Captura 1:** Salida exitosa de `terraform apply` mostrando la creación de recursos.
+![alt text](image.png)
+
+![alt text](image-1.png)
+
 - **Captura 2:** Conexión exitosa por SSH a la VM desde PowerShell o terminal.
-- **Captura 3 (opcional):** Portal de Azure mostrando la VM creada.
 
-Coloca las imágenes en la carpeta del proyecto y referencia aquí si lo deseas:
+![alt text](image-2.png)
 
-```
-![Terraform Apply](image-1.png)
-![SSH Connection](image-2.png)
-![Azure Portal VM](image-3.png)
-```
+- **Captura 3:** Portal de Azure mostrando la VM creada.
 
-## Recomendaciones
-- Cambia la contraseña por una segura antes de producción.
-- Usa autenticación SSH para mayor seguridad.
+![alt text](image-3.png)
 
----
 
-Cualquier duda, revisa los archivos `.tf` o consulta la documentación oficial de Terraform y Azure.
+
+
